@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f0f4f8" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1d23" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Endanflug" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>Endanflugrechner</title>
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface2: #e8edf3;
+      --text: #1a2332;
+      --text2: #4a5568;
+      --accent: #2563eb;
+      --accent-light: #dbeafe;
+      --accent2: #059669;
+      --accent2-light: #d1fae5;
+      --warning: #d97706;
+      --warning-light: #fef3c7;
+      --danger: #dc2626;
+      --danger-light: #fee2e2;
+      --border: #cbd5e1;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1d23;
+        --surface: #252830;
+        --surface2: #2e3240;
+        --text: #e8ecf0;
+        --text2: #8b95a8;
+        --accent: #3b82f6;
+        --accent-light: #1e3a5f;
+        --accent2: #10b981;
+        --accent2-light: #064e3b;
+        --warning: #f59e0b;
+        --warning-light: #451a03;
+        --danger: #ef4444;
+        --danger-light: #450a0a;
+        --border: #3a3f4e;
+        --shadow: 0 2px 8px rgba(0,0,0,0.4);
+      }
+    }
+    [data-theme="light"] {
+      --bg: #f0f4f8; --surface: #ffffff; --surface2: #e8edf3;
+      --text: #1a2332; --text2: #4a5568; --accent: #2563eb;
+      --accent-light: #dbeafe; --accent2: #059669; --accent2-light: #d1fae5;
+      --warning: #d97706; --warning-light: #fef3c7;
+      --danger: #dc2626; --danger-light: #fee2e2;
+      --border: #cbd5e1; --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    [data-theme="dark"] {
+      --bg: #1a1d23; --surface: #252830; --surface2: #2e3240;
+      --text: #e8ecf0; --text2: #8b95a8; --accent: #3b82f6;
+      --accent-light: #1e3a5f; --accent2: #10b981; --accent2-light: #064e3b;
+      --warning: #f59e0b; --warning-light: #451a03;
+      --danger: #ef4444; --danger-light: #450a0a;
+      --border: #3a3f4e; --shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: var(--shadow);
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .logo { font-size: 22px; }
+    .app-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+    .app-subtitle { font-size: 11px; color: var(--text2); }
+
+    .header-right { display: flex; align-items: center; gap: 8px; }
+
+    .theme-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 10px;
+      font-size: 14px;
+      cursor: pointer;
+      color: var(--text);
+      transition: all 0.2s;
+    }
+    .theme-btn:active { transform: scale(0.95); }
+
+    main { padding: 16px; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+    /* ECET Info Card */
+    .ecet-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+    .ecet-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .ecet-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+    .ecet-badge {
+      font-size: 11px; font-weight: 600; padding: 3px 8px;
+      border-radius: 20px; background: var(--accent2-light); color: var(--accent2);
+    }
+    .ecet-times { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .ecet-item { text-align: center; }
+    .ecet-label { font-size: 10px; color: var(--text2); margin-bottom: 2px; }
+    .ecet-value { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .ecet-value.main { font-size: 22px; color: var(--accent); }
+
+    .countdown-bar {
+      margin-top: 12px;
+      background: var(--surface2);
+      border-radius: 8px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .countdown-fill {
+      height: 100%;
+      border-radius: 8px;
+      transition: width 1s linear, background 1s;
+    }
+    .countdown-text {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 6px;
+    }
+    .time-remaining { font-size: 13px; font-weight: 600; }
+    .time-label { font-size: 11px; color: var(--text2); }
+
+    /* Tabs */
+    .tabs {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 3px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .tab {
+      padding: 9px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text2);
+      transition: all 0.2s;
+      border: none;
+      background: none;
+    }
+    .tab.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow);
+    }
+
+    /* Calculator card */
+    .calc-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+    .section-title {
+      font-size: 12px; font-weight: 600; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;
+    }
+
+    .input-group { margin-bottom: 14px; }
+    .input-label {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 13px; font-weight: 600; margin-bottom: 6px;
+      color: var(--text);
+    }
+    .input-unit { font-size: 12px; color: var(--text2); font-weight: 400; }
+
+    .input-row {
+      display: flex; gap: 8px; align-items: center;
+    }
+    input[type="number"], input[type="time"] {
+      flex: 1;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 20px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+      -moz-appearance: textfield;
+      width: 100%;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input:focus { border-color: var(--accent); }
+    input[type="time"] { font-size: 18px; }
+
+    .stepper-btn {
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      width: 44px; height: 46px;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .stepper-btn:active { background: var(--accent-light); transform: scale(0.93); }
+
+    /* Slider */
+    .slider-wrap { margin-top: 4px; }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 4px;
+      background: var(--surface2);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 3px solid var(--surface);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      cursor: pointer;
+    }
+    .slider-labels {
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: var(--text2); margin-top: 2px;
+    }
+
+    /* Result */
+    .result-card {
+      background: var(--accent-light);
+      border: 2px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+    .result-card.green {
+      background: var(--accent2-light);
+      border-color: var(--accent2);
+    }
+    .result-card.warning {
+      background: var(--warning-light);
+      border-color: var(--warning);
+    }
+    .result-card.danger {
+      background: var(--danger-light);
+      border-color: var(--danger);
+    }
+    .result-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .result-value { font-size: 48px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+    .result-unit { font-size: 14px; font-weight: 600; color: var(--text2); margin-top: 2px; }
+    .result-note { font-size: 12px; color: var(--text2); margin-top: 8px; }
+
+    /* Info row */
+    .info-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-top: 4px;
+    }
+    .info-item {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .info-item-label { font-size: 10px; color: var(--text2); margin-bottom: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+    .info-item-value { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    /* ECET override */
+    .override-row {
+      display: flex; align-items: center; gap: 8px; margin-top: 10px;
+    }
+    .override-label { font-size: 12px; color: var(--text2); flex: 1; }
+    .toggle-btn {
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; color: var(--text);
+      transition: all 0.2s;
+    }
+    .toggle-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+    .manual-time { display: none; margin-top: 10px; }
+    .manual-time.visible { display: block; }
+
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 11px;
+      color: var(--text2);
+    }
+
+    /* Live clock */
+    .live-clock {
+      font-size: 13px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--text2);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span class="logo">🛩️</span>
+    <div>
+      <div class="app-title">Endanflugrechner</div>
+      <div class="app-subtitle">LOLW · Wr. Neustadt West</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="live-clock" id="liveClock">--:--:--</span>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌓</button>
+  </div>
+</header>
+
+<main>
+  <!-- ECET Card -->
+  <div class="ecet-card">
+    <div class="ecet-header">
+      <span class="ecet-title">Tageslimit LOLW</span>
+      <span class="ecet-badge" id="ecetBadge">ECET</span>
+    </div>
+    <div class="ecet-times">
+      <div class="ecet-item">
+        <div class="ecet-label">Sonnenuntergang</div>
+        <div class="ecet-value" id="sunsetTime">--:--</div>
+      </div>
+      <div class="ecet-item">
+        <div class="ecet-label">ECET (+30 min)</div>
+        <div class="ecet-value main" id="ecetTime">--:--</div>
+      </div>
+      <div class="ecet-item">
+        <div class="ecet-label">Jetzt (UTC)</div>
+        <div class="ecet-value" id="utcNow">--:--</div>
+      </div>
+    </div>
+    <div class="countdown-bar">
+      <div class="countdown-fill" id="countdownFill" style="width:0%"></div>
+    </div>
+    <div class="countdown-text">
+      <span class="time-remaining" id="timeRemaining">-- min verbleibend</span>
+      <span class="time-label" id="ecetDateLabel"></span>
+    </div>
+
+    <div class="override-row">
+      <span class="override-label">Manuelle Endzeit</span>
+      <button class="toggle-btn" id="manualToggle" onclick="toggleManual()">Verwenden</button>
+    </div>
+    <div class="manual-time" id="manualTimeWrap">
+      <div class="input-group" style="margin-bottom:0">
+        <input type="time" id="manualEndTime" onchange="recalculate()" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode Tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tabSpeed" onclick="setMode('speed')">Distanz → Geschwindigkeit</button>
+    <button class="tab" id="tabDist" onclick="setMode('dist')">Geschwindigkeit → Distanz</button>
+  </div>
+
+  <!-- Mode A: Distance → Speed -->
+  <div class="calc-card" id="panelSpeed">
+    <div class="section-title">Wie schnell muss ich fliegen?</div>
+
+    <div class="input-group">
+      <div class="input-label">
+        <span>Distanz zur Landung</span>
+        <span class="input-unit">km</span>
+      </div>
+      <div class="input-row">
+        <button class="stepper-btn" onclick="stepValue('distA', -5)">−</button>
+        <input type="number" id="distA" value="80" min="1" max="999" step="1" oninput="recalculate()" />
+        <button class="stepper-btn" onclick="stepValue('distA', +5)">+</button>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" id="distASlider" min="10" max="400" step="5" value="80"
+          oninput="syncSlider('distA','distASlider'); recalculate()" />
+        <div class="slider-labels"><span>10 km</span><span>400 km</span></div>
+      </div>
+    </div>
+
+    <div class="result-card" id="resultSpeed">
+      <div class="result-label">Erforderliche Geschwindigkeit</div>
+      <div class="result-value" id="speedResult">—</div>
+      <div class="result-unit">km/h</div>
+      <div class="result-note" id="speedNote"></div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-item">
+        <div class="info-item-label">Verbleibende Zeit</div>
+        <div class="info-item-value" id="timeA">-- min</div>
+      </div>
+      <div class="info-item">
+        <div class="info-item-label">Ankunft bei Ø</div>
+        <div class="info-item-value" id="arrivalA">--:--</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode B: Speed → Distance -->
+  <div class="calc-card" id="panelDist" style="display:none">
+    <div class="section-title">Wie weit komme ich noch?</div>
+
+    <div class="input-group">
+      <div class="input-label">
+        <span>Durchschnittsgeschwindigkeit</span>
+        <span class="input-unit">km/h</span>
+      </div>
+      <div class="input-row">
+        <button class="stepper-btn" onclick="stepValue('speedB', -5)">−</button>
+        <input type="number" id="speedB" value="100" min="40" max="300" step="1" oninput="recalculate()" />
+        <button class="stepper-btn" onclick="stepValue('speedB', +5)">+</button>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" id="speedBSlider" min="40" max="260" step="5" value="100"
+          oninput="syncSlider('speedB','speedBSlider'); recalculate()" />
+        <div class="slider-labels"><span>40 km/h</span><span>260 km/h</span></div>
+      </div>
+    </div>
+
+    <div class="result-card green" id="resultDist">
+      <div class="result-label">Erreichbare Distanz</div>
+      <div class="result-value" id="distResult">—</div>
+      <div class="result-unit">km</div>
+      <div class="result-note" id="distNote"></div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-item">
+        <div class="info-item-label">Verbleibende Zeit</div>
+        <div class="info-item-value" id="timeB">-- min</div>
+      </div>
+      <div class="info-item">
+        <div class="info-item-label">Ankunft (exakt)</div>
+        <div class="info-item-value" id="arrivalB">--:--</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Wr. Neustadt West (LOLW) · 47.839°N 16.260°E · ECET = SU + 30 min<br>
+  Nur zur Planung — keine offizielle Quelle
+</footer>
+
+<script>
+// ─── Theme ───────────────────────────────────────────────────────────────────
+let themeMode = localStorage.getItem('theme') || 'auto';
+applyTheme();
+
+function applyTheme() {
+  const root = document.documentElement;
+  if (themeMode === 'auto') {
+    root.removeAttribute('data-theme');
+    document.getElementById('themeBtn').textContent = '🌓';
+  } else if (themeMode === 'light') {
+    root.setAttribute('data-theme', 'light');
+    document.getElementById('themeBtn').textContent = '☀️';
+  } else {
+    root.setAttribute('data-theme', 'dark');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
+}
+
+function toggleTheme() {
+  const order = ['auto', 'light', 'dark'];
+  themeMode = order[(order.indexOf(themeMode) + 1) % order.length];
+  localStorage.setItem('theme', themeMode);
+  applyTheme();
+}
+
+// ─── Mode ─────────────────────────────────────────────────────────────────────
+let currentMode = 'speed';
+function setMode(m) {
+  currentMode = m;
+  document.getElementById('panelSpeed').style.display = m === 'speed' ? '' : 'none';
+  document.getElementById('panelDist').style.display = m === 'dist' ? '' : 'none';
+  document.getElementById('tabSpeed').classList.toggle('active', m === 'speed');
+  document.getElementById('tabDist').classList.toggle('active', m === 'dist');
+  recalculate();
+}
+
+// ─── Manual override ─────────────────────────────────────────────────────────
+let useManual = false;
+function toggleManual() {
+  useManual = !useManual;
+  document.getElementById('manualToggle').classList.toggle('active', useManual);
+  document.getElementById('manualTimeWrap').classList.toggle('visible', useManual);
+  recalculate();
+}
+
+// ─── Stepper / Slider sync ────────────────────────────────────────────────────
+function stepValue(id, delta) {
+  const el = document.getElementById(id);
+  const v = parseFloat(el.value) || 0;
+  const min = parseFloat(el.min) || 0;
+  const max = parseFloat(el.max) || 9999;
+  el.value = Math.min(max, Math.max(min, v + delta));
+  // sync slider
+  const slider = document.getElementById(id + 'Slider');
+  if (slider) slider.value = el.value;
+  recalculate();
+}
+
+function syncSlider(inputId, sliderId) {
+  document.getElementById(inputId).value = document.getElementById(sliderId).value;
+}
+
+// ─── Sunset calculation (Spencer / Grena algorithm) ──────────────────────────
+// LOLW coordinates
+const LAT = 47.8394;
+const LON = 16.2603;
+
+function toRad(d) { return d * Math.PI / 180; }
+
+function getSunTimes(date) {
+  // Julian day
+  const JD = date.getTime() / 86400000 + 2440587.5;
+  const n = Math.round(JD - 2451545.0 - 0.0009 - LON / 360);
+
+  const Jstar = 2451545.0 + 0.0009 + LON / 360 + n;
+  const M = (357.5291 + 0.98560028 * (Jstar - 2451545)) % 360;
+  const Mrad = toRad(M < 0 ? M + 360 : M);
+  const C = 1.9148 * Math.sin(Mrad) + 0.0200 * Math.sin(2 * Mrad) + 0.0003 * Math.sin(3 * Mrad);
+  const lambda = (M + C + 180 + 102.9372) % 360;
+  const lambdaRad = toRad(lambda);
+  const Jtransit = Jstar + 0.0053 * Math.sin(Mrad) - 0.0069 * Math.sin(2 * lambdaRad);
+  const sinDec = Math.sin(lambdaRad) * Math.sin(toRad(23.45));
+  const cosDec = Math.cos(Math.asin(sinDec));
+  // -0.83° for atmospheric refraction + disc radius
+  const cosHa = (Math.sin(toRad(-0.83)) - Math.sin(toRad(LAT)) * sinDec) / (Math.cos(toRad(LAT)) * cosDec);
+
+  if (Math.abs(cosHa) > 1) return null; // polar day/night
+
+  const ha = Math.acos(cosHa) / (2 * Math.PI);
+  const Jset = Jtransit + ha;
+
+  // Convert Julian day to UTC ms
+  const sunsetUTC = (Jset - 2440587.5) * 86400000;
+  return new Date(sunsetUTC);
+}
+
+// ─── Time helpers ─────────────────────────────────────────────────────────────
+function fmtTime(date, local = true) {
+  const h = local ? date.getHours() : date.getUTCHours();
+  const m = local ? date.getMinutes() : date.getUTCMinutes();
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function fmtTimeS(date) {
+  const h = date.getHours(), m = date.getMinutes(), s = date.getSeconds();
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function parseTimeToToday(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+// ─── ECET calculation ─────────────────────────────────────────────────────────
+let ecetDate = null;
+
+function updateECET() {
+  const now = new Date();
+  const sunset = getSunTimes(now);
+  if (!sunset) {
+    document.getElementById('sunsetTime').textContent = 'N/A';
+    document.getElementById('ecetTime').textContent = 'N/A';
+    return;
+  }
+
+  const ecet = new Date(sunset.getTime() + 30 * 60000);
+  ecetDate = ecet;
+
+  document.getElementById('sunsetTime').textContent = fmtTime(sunset);
+  document.getElementById('ecetTime').textContent = fmtTime(ecet);
+  document.getElementById('utcNow').textContent = fmtTime(now, false) + ' UTC';
+
+  // Date label
+  const opts = { weekday: 'short', day: '2-digit', month: '2-digit' };
+  document.getElementById('ecetDateLabel').textContent = now.toLocaleDateString('de-AT', opts);
+
+  // Countdown bar
+  const totalMs = ecet - (new Date(now));
+  const startMs = ecet - (sunset - (new Date(now.getFullYear(), now.getMonth(), now.getDate(), 6, 0)));
+  const pct = Math.max(0, Math.min(100, (totalMs / (4 * 3600 * 1000)) * 100));
+
+  const fill = document.getElementById('countdownFill');
+  const minLeft = Math.max(0, Math.round(totalMs / 60000));
+
+  if (minLeft <= 0) {
+    fill.style.width = '0%';
+    fill.style.background = 'var(--danger)';
+    document.getElementById('timeRemaining').textContent = 'ECET überschritten';
+    document.getElementById('timeRemaining').style.color = 'var(--danger)';
+  } else {
+    fill.style.width = pct + '%';
+    if (minLeft <= 15) {
+      fill.style.background = 'var(--danger)';
+      document.getElementById('timeRemaining').style.color = 'var(--danger)';
+    } else if (minLeft <= 30) {
+      fill.style.background = 'var(--warning)';
+      document.getElementById('timeRemaining').style.color = 'var(--warning)';
+    } else {
+      fill.style.background = 'var(--accent2)';
+      document.getElementById('timeRemaining').style.color = 'var(--text)';
+    }
+    const h = Math.floor(minLeft / 60), m = minLeft % 60;
+    document.getElementById('timeRemaining').textContent =
+      h > 0 ? `${h} h ${m} min verbleibend` : `${m} min verbleibend`;
+  }
+
+  recalculate();
+}
+
+// ─── Main calculation ─────────────────────────────────────────────────────────
+function getEndTime() {
+  if (useManual) {
+    const val = document.getElementById('manualEndTime').value;
+    if (val) return parseTimeToToday(val);
+  }
+  return ecetDate;
+}
+
+function recalculate() {
+  const now = new Date();
+  const endTime = getEndTime();
+  if (!endTime) return;
+
+  const minLeft = (endTime - now) / 60000;
+  const hLeft = minLeft / 60;
+
+  const timeStr = minLeft <= 0 ? '0 min' :
+    minLeft < 60 ? `${Math.round(minLeft)} min` :
+    `${Math.floor(hLeft)}h ${Math.round(minLeft % 60)}min`;
+
+  document.getElementById('timeA').textContent = timeStr;
+  document.getElementById('timeB').textContent = timeStr;
+
+  if (currentMode === 'speed') {
+    const dist = parseFloat(document.getElementById('distA').value) || 0;
+    const slider = document.getElementById('distASlider');
+    if (slider.value != dist) slider.value = dist;
+
+    const card = document.getElementById('resultSpeed');
+    const val = document.getElementById('speedResult');
+    const note = document.getElementById('speedNote');
+
+    if (minLeft <= 0) {
+      val.textContent = '—';
+      note.textContent = 'ECET bereits überschritten';
+      card.className = 'result-card danger';
+      document.getElementById('arrivalA').textContent = '--:--';
+      return;
+    }
+
+    const reqSpeed = dist / hLeft;
+    val.textContent = Math.round(reqSpeed);
+
+    const arrivalDate = new Date(now.getTime() + hLeft * 3600000);
+    document.getElementById('arrivalA').textContent = fmtTime(arrivalDate);
+
+    if (reqSpeed > 200) {
+      card.className = 'result-card danger';
+      note.textContent = 'Nicht erreichbar – zu weit';
+    } else if (reqSpeed > 140) {
+      card.className = 'result-card warning';
+      note.textContent = 'Sehr hohe Geschwindigkeit nötig';
+    } else if (reqSpeed > 100) {
+      card.className = 'result-card';
+      note.textContent = 'Flott, aber machbar';
+    } else {
+      card.className = 'result-card green';
+      note.textContent = 'Gut erreichbar ✓';
+    }
+
+  } else {
+    const speed = parseFloat(document.getElementById('speedB').value) || 0;
+    const slider = document.getElementById('speedBSlider');
+    if (slider.value != speed) slider.value = speed;
+
+    const card = document.getElementById('resultDist');
+    const val = document.getElementById('distResult');
+    const note = document.getElementById('distNote');
+
+    if (minLeft <= 0) {
+      val.textContent = '0';
+      note.textContent = 'ECET bereits überschritten';
+      card.className = 'result-card danger';
+      document.getElementById('arrivalB').textContent = '--:--';
+      return;
+    }
+
+    const reachDist = speed * hLeft;
+    val.textContent = Math.round(reachDist);
+    note.textContent = `bei ${speed} km/h Ø in ${timeStr}`;
+
+    const arrivalDate = endTime;
+    document.getElementById('arrivalB').textContent = fmtTime(arrivalDate);
+
+    card.className = 'result-card green';
+  }
+}
+
+// ─── Service Worker ───────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// ─── Clock & ticker ───────────────────────────────────────────────────────────
+function tick() {
+  const now = new Date();
+  document.getElementById('liveClock').textContent = fmtTimeS(now);
+  document.getElementById('utcNow').textContent = fmtTime(now, false) + ' UTC';
+  recalculate();
+}
+
+// Update ECET once per minute (sunset doesn't change faster)
+updateECET();
+setInterval(updateECET, 60000);
+tick();
+setInterval(tick, 1000);
+</script>
+
+</body>
+</html>
