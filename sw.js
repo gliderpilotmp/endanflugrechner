@@ -1,6 +1,6 @@
 const VERSION = '1.0';
 const CACHE = 'endanflug-v' + VERSION;
-const ASSETS = ['./index.html', './manifest.json', './sw.js'];
+const ASSETS = ['./index.html', './manifest.json', './sw.js', './arcus.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
