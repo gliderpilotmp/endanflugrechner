@@ -323,6 +323,54 @@
       color: var(--text2);
     }
 
+    /* Install button */
+    .install-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .install-btn:active { transform: scale(0.95); opacity: 0.85; }
+
+    /* Update banner */
+    .update-banner {
+      position: fixed;
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1.5px solid var(--accent);
+      border-radius: 12px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      z-index: 100;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .update-banner button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
     /* Live clock */
     .live-clock {
       font-size: 13px;
@@ -344,6 +392,7 @@
   </div>
   <div class="header-right">
     <span class="live-clock" id="liveClock">--:--:--</span>
+    <button class="install-btn" id="installBtn" style="display:none" onclick="triggerInstall()">⬇ Installieren</button>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌓</button>
   </div>
 </header>
@@ -476,9 +525,15 @@
 
 </main>
 
+<!-- Update-Banner -->
+<div id="updateBanner" style="display:none" class="update-banner">
+  <span>🔄 Neue Version verfügbar</span>
+  <button onclick="applyUpdate()">Jetzt aktualisieren</button>
+</div>
+
 <footer>
   LOXN Wr. Neustadt · 47.843°N 16.260°E · ECET = Sonne bei −6°<br>
-  Nur zur Planung — keine offizielle Quelle
+  Nur zur Planung — keine offizielle Quelle · <span id="versionLabel"></span>
 </footer>
 
 <script>
@@ -744,9 +799,64 @@ function recalculate() {
   }
 }
 
-// ─── Service Worker ───────────────────────────────────────────────────────────
+// ─── Version ─────────────────────────────────────────────────────────────────
+const APP_VERSION = '1.0';
+document.getElementById('versionLabel').textContent = 'v' + APP_VERSION;
+
+// ─── PWA Install ─────────────────────────────────────────────────────────────
+let installPromptEvent = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  installPromptEvent = e;
+  document.getElementById('installBtn').style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBtn').style.display = 'none';
+  installPromptEvent = null;
+});
+
+function triggerInstall() {
+  if (!installPromptEvent) return;
+  installPromptEvent.prompt();
+  installPromptEvent.userChoice.then(() => {
+    installPromptEvent = null;
+    document.getElementById('installBtn').style.display = 'none';
+  });
+}
+
+// ─── Service Worker + Update detection ───────────────────────────────────────
+let swWaiting = null;
+
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    // SW already waiting on first load (e.g. after a deploy)
+    if (reg.waiting) showUpdateBanner(reg.waiting);
+
+    reg.addEventListener('updatefound', () => {
+      const newSW = reg.installing;
+      newSW.addEventListener('statechange', () => {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateBanner(newSW);
+        }
+      });
+    });
+  }).catch(() => {});
+
+  // After skipWaiting the controller changes — reload to activate new version
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+}
+
+function showUpdateBanner(sw) {
+  swWaiting = sw;
+  document.getElementById('updateBanner').style.display = 'flex';
+}
+
+function applyUpdate() {
+  if (swWaiting) swWaiting.postMessage({ type: 'SKIP_WAITING' });
 }
 
 // ─── Clock & ticker ───────────────────────────────────────────────────────────
