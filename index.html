@@ -669,8 +669,9 @@ function updateECET() {
   const { sunset, ecet } = times;
   ecetDate = ecet;
 
-  document.getElementById('sunsetTime').textContent = fmtTime(sunset, false);
-  document.getElementById('ecetTime').textContent = fmtTime(ecet, false);
+  const offset = 2 * 3600000;
+  document.getElementById('sunsetTime').textContent = fmtTime(new Date(sunset.getTime() - offset), false);
+  document.getElementById('ecetTime').textContent = fmtTime(new Date(ecet.getTime() - offset), false);
   document.getElementById('utcNow').textContent = fmtTime(now, false) + ' UTC';
 
   // Date label
