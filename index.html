@@ -339,7 +339,7 @@
     <span class="logo">🛩️</span>
     <div>
       <div class="app-title">Endanflugrechner</div>
-      <div class="app-subtitle">Wien · ECET-Referenz</div>
+      <div class="app-subtitle">LOXN · Wr. Neustadt</div>
     </div>
   </div>
   <div class="header-right">
@@ -352,7 +352,7 @@
   <!-- ECET Card -->
   <div class="ecet-card">
     <div class="ecet-header">
-      <span class="ecet-title">Tageslimit LOLW</span>
+      <span class="ecet-title">Tageslimit LOXN</span>
       <span class="ecet-badge" id="ecetBadge">ECET</span>
     </div>
     <div class="ecet-times">
@@ -361,7 +361,7 @@
         <div class="ecet-value" id="sunsetTime">--:--</div>
       </div>
       <div class="ecet-item">
-        <div class="ecet-label">ECET (+30 min)</div>
+        <div class="ecet-label">ECET (−6° exakt)</div>
         <div class="ecet-value main" id="ecetTime">--:--</div>
       </div>
       <div class="ecet-item">
@@ -477,7 +477,7 @@
 </main>
 
 <footer>
-  Wien · 48.208°N 16.374°E · ECET = SU + 30 min<br>
+  LOXN Wr. Neustadt · 47.843°N 16.260°E · ECET = Sonne bei −6°<br>
   Nur zur Planung — keine offizielle Quelle
 </footer>
 
@@ -545,17 +545,15 @@ function syncSlider(inputId, sliderId) {
 }
 
 // ─── Sunset calculation (Spencer / Grena algorithm) ──────────────────────────
-// LOLW coordinates
-const LAT = 48.2082;
-const LON = 16.3738;
+// LOXN Wiener Neustadt
+const LAT = 47.8433;
+const LON = 16.2600;
 
 function toRad(d) { return d * Math.PI / 180; }
 
 function getSunTimes(date) {
-  // Julian day
   const JD = date.getTime() / 86400000 + 2440587.5;
   const n = Math.round(JD - 2451545.0 - 0.0009 - LON / 360);
-
   const Jstar = 2451545.0 + 0.0009 + LON / 360 + n;
   const M = (357.5291 + 0.98560028 * (Jstar - 2451545)) % 360;
   const Mrad = toRad(M < 0 ? M + 360 : M);
@@ -565,17 +563,21 @@ function getSunTimes(date) {
   const Jtransit = Jstar + 0.0053 * Math.sin(Mrad) - 0.0069 * Math.sin(2 * lambdaRad);
   const sinDec = Math.sin(lambdaRad) * Math.sin(toRad(23.45));
   const cosDec = Math.cos(Math.asin(sinDec));
-  // -0.83° for atmospheric refraction + disc radius
-  const cosHa = (Math.sin(toRad(-0.83)) - Math.sin(toRad(LAT)) * sinDec) / (Math.cos(toRad(LAT)) * cosDec);
 
-  if (Math.abs(cosHa) > 1) return null; // polar day/night
+  // Sunset: -0.83° (Refraktion + Sonnenscheibe)
+  const cosHaSunset = (Math.sin(toRad(-0.83)) - Math.sin(toRad(LAT)) * sinDec) / (Math.cos(toRad(LAT)) * cosDec);
+  // ECET: -6° (bürgerliche Dämmerung)
+  const cosHaEcet = (Math.sin(toRad(-6.0)) - Math.sin(toRad(LAT)) * sinDec) / (Math.cos(toRad(LAT)) * cosDec);
 
-  const ha = Math.acos(cosHa) / (2 * Math.PI);
-  const Jset = Jtransit + ha;
+  if (Math.abs(cosHaSunset) > 1 || Math.abs(cosHaEcet) > 1) return null;
 
-  // Convert Julian day to UTC ms
-  const sunsetUTC = (Jset - 2440587.5) * 86400000;
-  return new Date(sunsetUTC);
+  const Jset    = Jtransit + Math.acos(cosHaSunset) / (2 * Math.PI);
+  const JsetEcet = Jtransit + Math.acos(cosHaEcet)  / (2 * Math.PI);
+
+  return {
+    sunset: new Date((Jset     - 2440587.5) * 86400000),
+    ecet:   new Date((JsetEcet - 2440587.5) * 86400000),
+  };
 }
 
 // ─── Time helpers ─────────────────────────────────────────────────────────────
@@ -602,14 +604,14 @@ let ecetDate = null;
 
 function updateECET() {
   const now = new Date();
-  const sunset = getSunTimes(now);
-  if (!sunset) {
+  const times = getSunTimes(now);
+  if (!times) {
     document.getElementById('sunsetTime').textContent = 'N/A';
     document.getElementById('ecetTime').textContent = 'N/A';
     return;
   }
 
-  const ecet = new Date(sunset.getTime() + 30 * 60000);
+  const { sunset, ecet } = times;
   ecetDate = ecet;
 
   document.getElementById('sunsetTime').textContent = fmtTime(sunset);
