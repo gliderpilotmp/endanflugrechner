@@ -406,11 +406,11 @@
     </div>
     <div class="ecet-times">
       <div class="ecet-item">
-        <div class="ecet-label">Sonnenuntergang</div>
+        <div class="ecet-label">Sonnenuntergang UTC</div>
         <div class="ecet-value" id="sunsetTime">--:--</div>
       </div>
       <div class="ecet-item">
-        <div class="ecet-label">ECET (−6° exakt)</div>
+        <div class="ecet-label">ECET UTC (−6°)</div>
         <div class="ecet-value main" id="ecetTime">--:--</div>
       </div>
       <div class="ecet-item">
@@ -669,8 +669,8 @@ function updateECET() {
   const { sunset, ecet } = times;
   ecetDate = ecet;
 
-  document.getElementById('sunsetTime').textContent = fmtTime(sunset);
-  document.getElementById('ecetTime').textContent = fmtTime(ecet);
+  document.getElementById('sunsetTime').textContent = fmtTime(sunset, false);
+  document.getElementById('ecetTime').textContent = fmtTime(ecet, false);
   document.getElementById('utcNow').textContent = fmtTime(now, false) + ' UTC';
 
   // Date label
