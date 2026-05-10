@@ -1,4 +1,4 @@
-const VERSION = '1.2';
+const VERSION = '1.3';
 const CACHE = 'endanflug-v' + VERSION;
 const ASSETS = ['./index.html', './manifest.json', './sw.js', './arcus.png', './icon-192.png', './icon-512.png'];
 
