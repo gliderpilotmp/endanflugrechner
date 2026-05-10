@@ -723,9 +723,9 @@ function toRad(d) { return d * Math.PI / 180; }
 function getSunTimes(date) {
   // Convert JS timestamp to Julian Date
   const JD = date.getTime() / 86400000 + 2440587.5;
-  // Julian cycle number (noon-based, corrected for longitude)
-  const n = Math.round(JD - 2451545.0 - 0.0009 - LON / 360);
-  const Jstar = 2451545.0 + 0.0009 + LON / 360 + n;
+  // Julian cycle number — algorithm expects west longitude, so east longitude is negated
+  const n = Math.round(JD - 2451545.0 - 0.0009 + LON / 360);
+  const Jstar = 2451545.0 + 0.0009 - LON / 360 + n;
   // Mean anomaly of the sun
   const M = (357.5291 + 0.98560028 * (Jstar - 2451545)) % 360;
   const Mrad = toRad(M < 0 ? M + 360 : M);
@@ -792,10 +792,9 @@ function updateECET() {
   }
 
   const { sunset, ecet } = times;
-  const offset = 2 * 3600000;
-  ecetDate = new Date(ecet.getTime() - offset);
+  ecetDate = ecet;
 
-  document.getElementById('sunsetTime').textContent = fmtTimeDisplay(new Date(sunset.getTime() - offset));
+  document.getElementById('sunsetTime').textContent = fmtTimeDisplay(sunset);
   document.getElementById('ecetTime').textContent = fmtTimeDisplay(ecetDate);
   document.getElementById('utcNow').textContent = fmtTimeDisplay(now);
 
