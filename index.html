@@ -664,11 +664,11 @@ function fmtTimeS(date) {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-// Parses a "HH:MM" string from the manual time input into a Date for today (local time)
+// Parses a "HH:MM" string from the manual time input into a Date for today (UTC)
 function parseTimeToToday(timeStr) {
   const [h, m] = timeStr.split(':').map(Number);
   const d = new Date();
-  d.setHours(h, m, 0, 0);
+  d.setUTCHours(h, m, 0, 0);
   return d;
 }
 
