@@ -106,8 +106,19 @@
       transition: all 0.2s;
     }
     .theme-btn:active { transform: scale(0.95); }
+    .theme-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
     main { padding: 16px; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+    /* Settings panel */
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-label { font-size: 13px; font-weight: 600; color: var(--text); }
+    .settings-control { display: flex; align-items: center; gap: 10px; }
+    .settings-value { font-size: 15px; font-weight: 700; min-width: 72px; text-align: center; font-variant-numeric: tabular-nums; }
 
     /* ECET Info Card */
     .ecet-card {
@@ -393,6 +404,7 @@
   <div class="header-right">
     <span class="live-clock" id="liveClock">--:--:--</span>
     <button class="install-btn" id="installBtn" style="display:none" onclick="triggerInstall()">⬇ Installieren</button>
+    <button class="theme-btn" id="settingsBtn" onclick="toggleSettings()">⚙</button>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌓</button>
   </div>
 </header>
@@ -401,7 +413,7 @@
   <!-- ECET Card -->
   <div class="ecet-card">
     <div class="ecet-header">
-      <span class="ecet-title">Tageslimit LOXN (Alle Zeiten in UTC)</span>
+      <span class="ecet-title" id="ecetTitle">Tageslimit LOXN (Alle Zeiten in UTC)</span>
       <span class="ecet-badge" id="ecetBadge">ECET</span>
     </div>
     <div class="ecet-times">
@@ -437,6 +449,38 @@
     </div>
   </div>
 
+  <!-- Settings Panel -->
+  <div class="calc-card" id="settingsPanel" style="display:none">
+    <div class="section-title">Einstellungen</div>
+
+    <div class="settings-row">
+      <span class="settings-label">Zeitzone</span>
+      <div class="settings-control">
+        <button class="stepper-btn" onclick="changeOffset(-1)">−</button>
+        <span class="settings-value" id="offsetDisplay">UTC</span>
+        <button class="stepper-btn" onclick="changeOffset(+1)">+</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label">Max. Distanz</span>
+      <div class="settings-control">
+        <button class="stepper-btn" onclick="changeMaxKm(-100)">−</button>
+        <span class="settings-value" id="maxKmDisplay">1500 km</span>
+        <button class="stepper-btn" onclick="changeMaxKm(+100)">+</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label">Max. Geschwindigkeit</span>
+      <div class="settings-control">
+        <button class="stepper-btn" onclick="changeMaxKmh(-10)">−</button>
+        <span class="settings-value" id="maxKmhDisplay">240 km/h</span>
+        <button class="stepper-btn" onclick="changeMaxKmh(+10)">+</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Mode Tabs -->
   <div class="tabs">
     <button class="tab active" id="tabSpeed" onclick="setMode('speed')">Distanz → Geschwindigkeit</button>
@@ -460,7 +504,7 @@
       <div class="slider-wrap">
         <input type="range" id="distASlider" min="10" max="1500" step="10" value="80"
           oninput="syncSlider('distA','distASlider'); recalculate()" />
-        <div class="slider-labels"><span>10 km</span><span>1500 km</span></div>
+        <div class="slider-labels"><span>10 km</span><span id="distASliderMax">1500 km</span></div>
       </div>
     </div>
 
@@ -500,7 +544,7 @@
       <div class="slider-wrap">
         <input type="range" id="speedBSlider" min="40" max="240" step="5" value="100"
           oninput="syncSlider('speedB','speedBSlider'); recalculate()" />
-        <div class="slider-labels"><span>40 km/h</span><span>240 km/h</span></div>
+        <div class="slider-labels"><span>40 km/h</span><span id="speedBSliderMax">240 km/h</span></div>
       </div>
     </div>
 
@@ -542,6 +586,68 @@
 //   Mode A — given a remaining distance, what average speed is required to land before ECET?
 //   Mode B — given an average speed, what is the maximum reachable distance before ECET?
 // All displayed times are UTC. The pilot can override the deadline with a manual end time.
+
+// ─── Settings ────────────────────────────────────────────────────────────────
+let utcOffsetHours = parseFloat(localStorage.getItem('utcOffset') || '0');
+let maxKm  = parseInt(localStorage.getItem('maxKm')  || '1500');
+let maxKmh = parseInt(localStorage.getItem('maxKmh') || '240');
+
+function toggleSettings() {
+  const panel = document.getElementById('settingsPanel');
+  const btn   = document.getElementById('settingsBtn');
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  btn.classList.toggle('active', open);
+}
+
+function fmtOffset(h) {
+  if (h === 0) return 'UTC';
+  return h > 0 ? `UTC+${h}` : `UTC${h}`;
+}
+
+function changeOffset(delta) {
+  utcOffsetHours = Math.min(14, Math.max(-12, utcOffsetHours + delta));
+  localStorage.setItem('utcOffset', utcOffsetHours);
+  document.getElementById('offsetDisplay').textContent = fmtOffset(utcOffsetHours);
+  document.getElementById('ecetTitle').textContent =
+    `Tageslimit LOXN (Alle Zeiten ${fmtOffset(utcOffsetHours)})`;
+  updateECET();
+}
+
+function changeMaxKm(delta) {
+  maxKm = Math.min(2000, Math.max(100, maxKm + delta));
+  localStorage.setItem('maxKm', maxKm);
+  document.getElementById('maxKmDisplay').textContent = maxKm + ' km';
+  applySliderMaxes();
+}
+
+function changeMaxKmh(delta) {
+  maxKmh = Math.min(250, Math.max(100, maxKmh + delta));
+  localStorage.setItem('maxKmh', maxKmh);
+  document.getElementById('maxKmhDisplay').textContent = maxKmh + ' km/h';
+  applySliderMaxes();
+}
+
+function applySliderMaxes() {
+  document.getElementById('distA').max = maxKm;
+  document.getElementById('distASlider').max = maxKm;
+  document.getElementById('distASliderMax').textContent = maxKm + ' km';
+  document.getElementById('speedB').max = maxKmh;
+  document.getElementById('speedBSlider').max = maxKmh;
+  document.getElementById('speedBSliderMax').textContent = maxKmh + ' km/h';
+  recalculate();
+}
+
+// Formats a UTC Date for display, shifted by the user's offset setting
+function fmtTimeDisplay(date) {
+  const d = new Date(date.getTime() + utcOffsetHours * 3600000);
+  return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
+}
+
+function fmtTimeSDisplay(date) {
+  const d = new Date(date.getTime() + utcOffsetHours * 3600000);
+  return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}:${String(d.getUTCSeconds()).padStart(2,'0')}`;
+}
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
 let themeMode = localStorage.getItem('theme') || 'auto';
@@ -664,11 +770,11 @@ function fmtTimeS(date) {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-// Parses a "HH:MM" string from the manual time input into a Date for today (UTC)
+// Parses "HH:MM" from the manual input as offset-adjusted time, converts to UTC internally
 function parseTimeToToday(timeStr) {
   const [h, m] = timeStr.split(':').map(Number);
   const d = new Date();
-  d.setUTCHours(h, m, 0, 0);
+  d.setUTCHours(h - utcOffsetHours, m, 0, 0);
   return d;
 }
 
@@ -689,9 +795,9 @@ function updateECET() {
   const offset = 2 * 3600000;
   ecetDate = new Date(ecet.getTime() - offset);
 
-  document.getElementById('sunsetTime').textContent = fmtTime(new Date(sunset.getTime() - offset), false);
-  document.getElementById('ecetTime').textContent = fmtTime(ecetDate, false);
-  document.getElementById('utcNow').textContent = fmtTime(now, false);
+  document.getElementById('sunsetTime').textContent = fmtTimeDisplay(new Date(sunset.getTime() - offset));
+  document.getElementById('ecetTime').textContent = fmtTimeDisplay(ecetDate);
+  document.getElementById('utcNow').textContent = fmtTimeDisplay(now);
 
   // Date label
   const opts = { weekday: 'short', day: '2-digit', month: '2-digit' };
@@ -779,7 +885,7 @@ function recalculate() {
     val.textContent = Math.round(reqSpeed);
 
     const arrivalDate = new Date(now.getTime() + hLeft * 3600000);
-    document.getElementById('arrivalA').textContent = fmtTime(arrivalDate, false);
+    document.getElementById('arrivalA').textContent = fmtTimeDisplay(arrivalDate);
 
     if (reqSpeed > 200) {
       card.className = 'result-card danger';
@@ -817,7 +923,7 @@ function recalculate() {
     note.textContent = `bei ${speed} km/h Ø in ${timeStr}`;
 
     const arrivalDate = endTime;
-    document.getElementById('arrivalB').textContent = fmtTime(arrivalDate, false);
+    document.getElementById('arrivalB').textContent = fmtTimeDisplay(arrivalDate);
 
     card.className = 'result-card green';
   }
@@ -886,10 +992,18 @@ function applyUpdate() {
 // ─── Clock & ticker ───────────────────────────────────────────────────────────
 function tick() {
   const now = new Date();
-  document.getElementById('liveClock').textContent = fmtTimeS(now);
-  document.getElementById('utcNow').textContent = fmtTime(now, false);
+  document.getElementById('liveClock').textContent = fmtTimeSDisplay(now);
+  document.getElementById('utcNow').textContent = fmtTimeDisplay(now);
   recalculate();
 }
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+document.getElementById('offsetDisplay').textContent = fmtOffset(utcOffsetHours);
+document.getElementById('maxKmDisplay').textContent  = maxKm  + ' km';
+document.getElementById('maxKmhDisplay').textContent = maxKmh + ' km/h';
+document.getElementById('ecetTitle').textContent =
+  `Tageslimit LOXN (Alle Zeiten ${fmtOffset(utcOffsetHours)})`;
+applySliderMaxes();
 
 // Update ECET once per minute (sunset doesn't change faster)
 updateECET();
