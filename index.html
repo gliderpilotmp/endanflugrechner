@@ -667,11 +667,11 @@ function updateECET() {
   }
 
   const { sunset, ecet } = times;
-  ecetDate = ecet;
-
   const offset = 2 * 3600000;
+  ecetDate = new Date(ecet.getTime() - offset);
+
   document.getElementById('sunsetTime').textContent = fmtTime(new Date(sunset.getTime() - offset), false);
-  document.getElementById('ecetTime').textContent = fmtTime(new Date(ecet.getTime() - offset), false);
+  document.getElementById('ecetTime').textContent = fmtTime(ecetDate, false);
   document.getElementById('utcNow').textContent = fmtTime(now, false) + ' UTC';
 
   // Date label
@@ -679,7 +679,7 @@ function updateECET() {
   document.getElementById('ecetDateLabel').textContent = now.toLocaleDateString('de-AT', opts);
 
   // Countdown bar
-  const totalMs = ecet - (new Date(now));
+  const totalMs = ecetDate - now;
   const startMs = ecet - (sunset - (new Date(now.getFullYear(), now.getMonth(), now.getDate(), 6, 0)));
   const pct = Math.max(0, Math.min(100, (totalMs / (4 * 3600 * 1000)) * 100));
 
@@ -756,7 +756,7 @@ function recalculate() {
     val.textContent = Math.round(reqSpeed);
 
     const arrivalDate = new Date(now.getTime() + hLeft * 3600000);
-    document.getElementById('arrivalA').textContent = fmtTime(arrivalDate);
+    document.getElementById('arrivalA').textContent = fmtTime(arrivalDate, false);
 
     if (reqSpeed > 200) {
       card.className = 'result-card danger';
@@ -794,7 +794,7 @@ function recalculate() {
     note.textContent = `bei ${speed} km/h Ø in ${timeStr}`;
 
     const arrivalDate = endTime;
-    document.getElementById('arrivalB').textContent = fmtTime(arrivalDate);
+    document.getElementById('arrivalB').textContent = fmtTime(arrivalDate, false);
 
     card.className = 'result-card green';
   }
