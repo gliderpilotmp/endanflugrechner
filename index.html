@@ -610,7 +610,7 @@ function changeOffset(delta) {
   localStorage.setItem('utcOffset', utcOffsetHours);
   document.getElementById('offsetDisplay').textContent = fmtOffset(utcOffsetHours);
   document.getElementById('ecetTitle').textContent =
-    `Tageslimit LOXN (Alle Zeiten ${fmtOffset(utcOffsetHours)})`;
+    `Tageslimit LOXN (${fmtOffset(utcOffsetHours)})`;
   updateECET();
 }
 
@@ -1002,7 +1002,7 @@ document.getElementById('offsetDisplay').textContent = fmtOffset(utcOffsetHours)
 document.getElementById('maxKmDisplay').textContent  = maxKm  + ' km';
 document.getElementById('maxKmhDisplay').textContent = maxKmh + ' km/h';
 document.getElementById('ecetTitle').textContent =
-  `Tageslimit LOXN (Alle Zeiten ${fmtOffset(utcOffsetHours)})`;
+  `Tageslimit LOXN (${fmtOffset(utcOffsetHours)})`;
 applySliderMaxes();
 
 // Update ECET once per minute (sunset doesn't change faster)
