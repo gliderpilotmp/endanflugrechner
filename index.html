@@ -401,20 +401,20 @@
   <!-- ECET Card -->
   <div class="ecet-card">
     <div class="ecet-header">
-      <span class="ecet-title">Tageslimit LOXN</span>
+      <span class="ecet-title">Tageslimit LOXN (Alle Zeiten in UTC)</span>
       <span class="ecet-badge" id="ecetBadge">ECET</span>
     </div>
     <div class="ecet-times">
       <div class="ecet-item">
-        <div class="ecet-label">Sonnenuntergang UTC</div>
+        <div class="ecet-label">Sunset</div>
         <div class="ecet-value" id="sunsetTime">--:--</div>
       </div>
       <div class="ecet-item">
-        <div class="ecet-label">ECET UTC (−6°)</div>
+        <div class="ecet-label">ECET</div>
         <div class="ecet-value main" id="ecetTime">--:--</div>
       </div>
       <div class="ecet-item">
-        <div class="ecet-label">Jetzt (UTC)</div>
+        <div class="ecet-label">Jetzt</div>
         <div class="ecet-value" id="utcNow">--:--</div>
       </div>
     </div>
@@ -691,7 +691,7 @@ function updateECET() {
 
   document.getElementById('sunsetTime').textContent = fmtTime(new Date(sunset.getTime() - offset), false);
   document.getElementById('ecetTime').textContent = fmtTime(ecetDate, false);
-  document.getElementById('utcNow').textContent = fmtTime(now, false) + ' UTC';
+  document.getElementById('utcNow').textContent = fmtTime(now, false);
 
   // Date label
   const opts = { weekday: 'short', day: '2-digit', month: '2-digit' };
@@ -887,7 +887,7 @@ function applyUpdate() {
 function tick() {
   const now = new Date();
   document.getElementById('liveClock').textContent = fmtTimeS(now);
-  document.getElementById('utcNow').textContent = fmtTime(now, false) + ' UTC';
+  document.getElementById('utcNow').textContent = fmtTime(now, false);
   recalculate();
 }
 
