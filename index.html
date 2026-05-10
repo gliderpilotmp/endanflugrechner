@@ -537,6 +537,12 @@
 </footer>
 
 <script>
+// Final approach calculator for glider pilots at LOXN (Wiener Neustadt).
+// Computes sunset and ECET (sun at −6°) in UTC and answers two questions:
+//   Mode A — given a remaining distance, what average speed is required to land before ECET?
+//   Mode B — given an average speed, what is the maximum reachable distance before ECET?
+// All displayed times are UTC. The pilot can override the deadline with a manual end time.
+
 // ─── Theme ───────────────────────────────────────────────────────────────────
 let themeMode = localStorage.getItem('theme') || 'auto';
 applyTheme();
@@ -599,35 +605,44 @@ function syncSlider(inputId, sliderId) {
   document.getElementById(inputId).value = document.getElementById(sliderId).value;
 }
 
-// ─── Sunset calculation (Spencer / Grena algorithm) ──────────────────────────
-// LOXN Wiener Neustadt
-const LAT = 47.8433;
-const LON = 16.2600;
+// ─── Sunset calculation (NOAA / Jean Meeus algorithm) ────────────────────────
+// Returns sunset and ECET as UTC Date objects for the given date.
+// Sunset uses −0.83° horizon angle (accounts for refraction and solar disc radius).
+// ECET uses −6° (end of civil evening twilight — the legal landing deadline in Austria).
+const LAT = 47.8433; // LOXN latitude
+const LON = 16.2600; // LOXN longitude
 
 function toRad(d) { return d * Math.PI / 180; }
 
 function getSunTimes(date) {
+  // Convert JS timestamp to Julian Date
   const JD = date.getTime() / 86400000 + 2440587.5;
+  // Julian cycle number (noon-based, corrected for longitude)
   const n = Math.round(JD - 2451545.0 - 0.0009 - LON / 360);
   const Jstar = 2451545.0 + 0.0009 + LON / 360 + n;
+  // Mean anomaly of the sun
   const M = (357.5291 + 0.98560028 * (Jstar - 2451545)) % 360;
   const Mrad = toRad(M < 0 ? M + 360 : M);
+  // Equation of centre
   const C = 1.9148 * Math.sin(Mrad) + 0.0200 * Math.sin(2 * Mrad) + 0.0003 * Math.sin(3 * Mrad);
+  // Ecliptic longitude
   const lambda = (M + C + 180 + 102.9372) % 360;
   const lambdaRad = toRad(lambda);
+  // Solar transit (solar noon in Julian Date)
   const Jtransit = Jstar + 0.0053 * Math.sin(Mrad) - 0.0069 * Math.sin(2 * lambdaRad);
+  // Declination
   const sinDec = Math.sin(lambdaRad) * Math.sin(toRad(23.45));
   const cosDec = Math.cos(Math.asin(sinDec));
 
-  // Sunset: -0.83° (Refraktion + Sonnenscheibe)
+  // Hour angle for sunset (−0.83°) and ECET (−6°)
   const cosHaSunset = (Math.sin(toRad(-0.83)) - Math.sin(toRad(LAT)) * sinDec) / (Math.cos(toRad(LAT)) * cosDec);
-  // ECET: -6° (bürgerliche Dämmerung)
-  const cosHaEcet = (Math.sin(toRad(-6.0)) - Math.sin(toRad(LAT)) * sinDec) / (Math.cos(toRad(LAT)) * cosDec);
+  const cosHaEcet   = (Math.sin(toRad(-6.0))  - Math.sin(toRad(LAT)) * sinDec) / (Math.cos(toRad(LAT)) * cosDec);
 
+  // |cos| > 1 means the sun never sets / rises (polar day or night)
   if (Math.abs(cosHaSunset) > 1 || Math.abs(cosHaEcet) > 1) return null;
 
-  const Jset    = Jtransit + Math.acos(cosHaSunset) / (2 * Math.PI);
-  const JsetEcet = Jtransit + Math.acos(cosHaEcet)  / (2 * Math.PI);
+  const Jset     = Jtransit + Math.acos(cosHaSunset) / (2 * Math.PI);
+  const JsetEcet = Jtransit + Math.acos(cosHaEcet)   / (2 * Math.PI);
 
   return {
     sunset: new Date((Jset     - 2440587.5) * 86400000),
@@ -636,17 +651,20 @@ function getSunTimes(date) {
 }
 
 // ─── Time helpers ─────────────────────────────────────────────────────────────
+// local=false → read UTC fields (used for all displayed times in this app)
 function fmtTime(date, local = true) {
   const h = local ? date.getHours() : date.getUTCHours();
   const m = local ? date.getMinutes() : date.getUTCMinutes();
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+// HH:MM:SS for the live header clock (shown in local time)
 function fmtTimeS(date) {
   const h = date.getHours(), m = date.getMinutes(), s = date.getSeconds();
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
+// Parses a "HH:MM" string from the manual time input into a Date for today (local time)
 function parseTimeToToday(timeStr) {
   const [h, m] = timeStr.split(':').map(Number);
   const d = new Date();
@@ -654,7 +672,8 @@ function parseTimeToToday(timeStr) {
   return d;
 }
 
-// ─── ECET calculation ─────────────────────────────────────────────────────────
+// ─── ECET update ─────────────────────────────────────────────────────────────
+// ecetDate holds the UTC deadline used by all calculations. Updated once per minute.
 let ecetDate = null;
 
 function updateECET() {
@@ -712,6 +731,7 @@ function updateECET() {
 }
 
 // ─── Main calculation ─────────────────────────────────────────────────────────
+// Returns the active deadline: manual override if enabled, otherwise ECET.
 function getEndTime() {
   if (useManual) {
     const val = document.getElementById('manualEndTime').value;
@@ -720,12 +740,15 @@ function getEndTime() {
   return ecetDate;
 }
 
+// Runs on every input change and every second (via tick).
+// Mode A: required speed = distance / hours remaining
+// Mode B: reachable distance = speed × hours remaining
 function recalculate() {
   const now = new Date();
   const endTime = getEndTime();
   if (!endTime) return;
 
-  const minLeft = (endTime - now) / 60000;
+  const minLeft = (endTime - now) / 60000; // minutes until deadline
   const hLeft = minLeft / 60;
 
   const timeStr = minLeft <= 0 ? '0 min' :
